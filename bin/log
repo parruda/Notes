@@ -1,0 +1,74 @@
+#!/bin/bash
+
+#if sed -v 2>&1 >/dev/stdout| grep -v -q GNU; then
+#  echo "You need to install GNU sed."
+#  exit 1
+#fi
+
+APP_ROOT=$(cat ~/.Notes/path)
+TODAY="$(date +%Y)/$(date +%B)/$(date +%d-%A)"
+save() {
+  cd $APP_ROOT
+  rm -f Readme.md
+  (echo -e "# Latest Entries: \n\n"; cat logs/$TODAY/Readme.md) > Readme.md
+  git add .
+  git commit -m "$(date +"%A %d %B %Y %H:%M:%S %Z")"
+  if git remote | grep -q origin; then
+    git push --set-upstream origin master
+  fi
+  echo "Logs saved."
+}
+fetch(){
+  cd $APP_ROOT
+  git fetch && git rebase
+  cd -
+}
+
+process_images(){
+   echo $ENTRIES # | grep -o -E '!\[\]\((.+)\)'
+}
+
+mkdir -pv $APP_ROOT/logs/$TODAY
+if [[ "$1" == "-s" ]]; then
+  fetch
+  save
+  exit 0
+elif [[ "$1" == "-e" ]]; then
+  subl $APP_ROOT $APP_ROOT/logs/$TODAY/Readme.md
+  exit 0
+elif [[ "$1" == "-h" ]]; then
+  cat <<EOF
+Usage: log [-h|-n|-s] [log entry]
+-e      Edit today's log entry
+-h      Print this help
+-n      Do not escape characters.
+-s      Save and push
+EOF
+  exit 0
+elif [[ "$1" == "-n" ]]; then
+  echo "Type your notes below in Markdown format. Cancel: CTRL+C - Save: CTRL+D"
+  echo ""
+  ESCAPE=false
+  UENTRY=$(</dev/stdin)
+elif [[ -n "$@" ]]; then
+  ENTRY="$@"
+else
+  echo "Type your notes below in Markdown format. Cancel: CTRL+C - Save: CTRL+D"
+  echo ""
+  ENTRY=$(</dev/stdin)
+fi
+[[ $ESCAPE == false ]] && ENTRY=$(eval "echo $UENTRY")
+fetch
+cat > $APP_ROOT/logs/$TODAY/.newEntry.md <<EOF
+# $(date +"%A %d %B %Y %H:%M:%S %Z")
+
+$ENTRY
+
+--------------------------------------
+EOF
+touch $APP_ROOT/logs/$TODAY/.oldEntries.md $APP_ROOT/logs/$TODAY/Readme.md
+cp $APP_ROOT/logs/$TODAY/Readme.md $APP_ROOT/logs/$TODAY/.oldEntries.md
+cat $APP_ROOT/logs/$TODAY/.newEntry.md $APP_ROOT/logs/$TODAY/.oldEntries.md > $APP_ROOT/logs/$TODAY/Readme.md
+rm -f $APP_ROOT/logs/$TODAY/.oldEntries.md $APP_ROOT/logs/$TODAY/.newEntry.md
+save
+

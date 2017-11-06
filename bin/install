@@ -1,0 +1,16 @@
+#!/bin/bash
+
+APP_ROOT=`pwd`
+mkdir -p ~/.Notes
+echo $APP_ROOT > ~/.Notes/path
+
+cat <<EOF
+
+Notes installed. Now add this to your .bashrc or .bash_profile:
+alias log="$APP_ROOT/bin/log"
+
+$($APP_ROOT/bin/log -h)
+
+If you edit $APP_ROOT/.git/config and add a remote named "origin", Notes will push on every save.
+
+EOF
