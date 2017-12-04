@@ -1,0 +1,46 @@
+#!/bin/bash
+
+APP_ROOT=.
+CHANGELOG=$APP_ROOT/CHANGELOG.md
+[[ ! -f $CHANGELOG ]] && echo "ERROR: Could not find file $CHANGELOG" && exit 1
+TODAY="$(date +%Y)/$(date +%B)/$(date +%d-%A)"
+
+mkdir -pv $APP_ROOT/logs/$TODAY
+if [[ "$1" == "-e" ]]; then
+  subl $APP_ROOT $APP_ROOT/logs/$TODAY/Readme.md
+  exit 0
+elif [[ "$1" == "-h" ]]; then
+  cat <<EOF
+Usage: changelog [-h|-n|-s] [log entry]
+-e      Edit CHANGELOG.md
+-h      Print this help
+-n      Do not escape characters.
+EOF
+  exit 0
+elif [[ "$1" == "-n" ]]; then
+  echo "Type your notes below in Markdown format. Cancel: CTRL+C - Save: CTRL+D"
+  echo ""
+  ESCAPE=false
+  UENTRY=$(</dev/stdin)
+elif [[ -n "$@" ]]; then
+  ENTRY="$@"
+else
+  echo "Type your notes below in Markdown format. Cancel: CTRL+C - Save: CTRL+D"
+  echo ""
+  ENTRY=$(</dev/stdin)
+fi
+[[ $ESCAPE == false ]] && ENTRY=$(eval "echo $UENTRY")
+
+cat > $APP_ROOT/.newEntry.CHANGELOG.md <<EOF
+# $(date +"%A %d %B %Y %H:%M:%S %Z")
+
+$ENTRY
+
+--------------------------------------
+EOF
+touch $APP_ROOT/.oldEntries.CHANGELOG.md $CHANGELOG
+cp $CHANGELOG $APP_ROOT/.oldEntries.CHANGELOG.md
+cat $APP_ROOT/.newEntry.CHANGELOG.md $APP_ROOT/.oldEntries.CHANGELOG.md > $CHANGELOG
+rm -f $APP_ROOT/.oldEntries.CHANGELOG.md $APP_ROOT/.newEntry.CHANGELOG.md
+echo "Entry added to $CHANGELOG."
+
